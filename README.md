@@ -32,9 +32,7 @@ Open ──(10 coupons sold)──► Drawing ──(VRF response)──► Fini
 
 ## Frontend showcase
 
-![EtherLottery frontend](docs/frontend-preview.svg)
-
-*Illustration of the UI. To use a real screenshot instead, save one as `docs/screenshot.png` and change the image link above.*
+![EtherLottery frontend](frontend-preview.svg)
 
 The frontend is a single file, `frontend/index.html`, with no build step. It follows your system's light or dark theme and works on mobile.
 
