@@ -71,11 +71,9 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     event PrizeWithdrawn(address indexed winner, uint256 amount);
     event FeesWithdrawn(address indexed to, uint256 amount);
 
-    constructor(
-        address vrfCoordinator,
-        uint256 _subscriptionId,
-        bytes32 _keyHash
-    ) VRFConsumerBaseV2Plus(vrfCoordinator) {
+    constructor(address vrfCoordinator, uint256 _subscriptionId, bytes32 _keyHash)
+        VRFConsumerBaseV2Plus(vrfCoordinator)
+    {
         subscriptionId = _subscriptionId;
         keyHash = _keyHash;
     }
@@ -134,7 +132,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
         ticketsOf[roundId][msg.sender] = 0;
         uint256 amount = count * TICKET_PRICE;
 
-        (bool ok, ) = msg.sender.call{value: amount}("");
+        (bool ok,) = msg.sender.call{value: amount}("");
         require(ok, "Refund failed");
         emit Refunded(roundId, msg.sender, amount);
     }
@@ -154,9 +152,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
                 requestConfirmations: REQUEST_CONFIRMATIONS,
                 callbackGasLimit: CALLBACK_GAS_LIMIT,
                 numWords: NUM_WORDS,
-                extraArgs: VRFV2PlusClient._argsToBytes(
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
-                )
+                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
             })
         );
 
@@ -165,7 +161,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     }
 
     /// @notice Re-request randomness if VRF has not answered after 1 day.
-        function retryDraw(uint256 roundId) external {
+    function retryDraw(uint256 roundId) external {
         Round storage r = rounds[roundId];
         require(r.state == State.Drawing, "Not drawing");
         require(block.timestamp >= r.drawRequestedAt + DRAW_RETRY_DELAY, "Too early");
@@ -174,10 +170,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
         r.retryCount++;
     }
 
-    function fulfillRandomWords(
-        uint256 requestId,
-        uint256[] calldata randomWords
-    ) internal override {
+    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
         uint256 roundId = requestToRound[requestId];
         Round storage r = rounds[roundId];
 
@@ -203,7 +196,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
         require(amount > 0, "No prize");
 
         pendingPrize[msg.sender] = 0;
-        (bool ok, ) = msg.sender.call{value: amount}("");
+        (bool ok,) = msg.sender.call{value: amount}("");
         require(ok, "Transfer failed");
         emit PrizeWithdrawn(msg.sender, amount);
     }
@@ -217,7 +210,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
         require(amount > 0, "No fees");
 
         protocolFees = 0;
-        (bool ok, ) = owner().call{value: amount}("");
+        (bool ok,) = owner().call{value: amount}("");
         require(ok, "Transfer failed");
         emit FeesWithdrawn(owner(), amount);
     }
@@ -228,22 +221,10 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     function getRound(uint256 roundId)
         external
         view
-        returns (
-            address[] memory players,
-            uint256 startTime,
-            uint256 endTime,
-            State state,
-            address winner
-        )
+        returns (address[] memory players, uint256 startTime, uint256 endTime, State state, address winner)
     {
         Round storage r = rounds[roundId];
-        return (
-            r.players,
-            r.startTime,
-            r.startTime == 0 ? 0 : r.startTime + SALE_DURATION,
-            r.state,
-            r.winner
-        );
+        return (r.players, r.startTime, r.startTime == 0 ? 0 : r.startTime + SALE_DURATION, r.state, r.winner);
     }
 
     function ticketsSold() external view returns (uint256) {

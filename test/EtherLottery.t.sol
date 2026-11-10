@@ -49,11 +49,11 @@ contract EtherLotteryTest is Test {
     }
 
     function _state(uint256 roundId) internal view returns (EtherLottery.State s) {
-        (, , , s, ) = lottery.getRound(roundId);
+        (,,, s,) = lottery.getRound(roundId);
     }
 
     function _winner(uint256 roundId) internal view returns (address w) {
-        (, , , , w) = lottery.getRound(roundId);
+        (,,,, w) = lottery.getRound(roundId);
     }
 
     function _isPlayer(address a) internal view returns (bool) {
@@ -104,7 +104,7 @@ contract EtherLotteryTest is Test {
         vm.warp(1_000_000);
         _buy(0, 1);
 
-        (, uint256 start, uint256 end, , ) = lottery.getRound(0);
+        (, uint256 start, uint256 end,,) = lottery.getRound(0);
         assertEq(start, 1_000_000);
         assertEq(end, 1_000_000 + 2 days);
     }
@@ -354,10 +354,7 @@ contract EtherLotteryTest is Test {
         _buy(0, 10);
         vrf.fulfillRandomWords(1, address(lottery));
 
-        assertEq(
-            address(lottery).balance,
-            lottery.pendingPrize(_winner(0)) + lottery.protocolFees()
-        );
+        assertEq(address(lottery).balance, lottery.pendingPrize(_winner(0)) + lottery.protocolFees());
     }
 
     function test_OwnerCanWithdrawFees() public {
