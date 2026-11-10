@@ -1,19 +1,25 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-import {Script} from "forge-std/Script.sol";
-import {EtherLotter} from "../src/EtherLottery.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {EtherLottery} from "../src/EtherLottery.sol";
 
 contract EtherLotteryScript is Script {
-    EtherLotter public etherLottery;
+    EtherLottery public etherLottery;
 
     function setUp() public {}
 
     function run() public {
+        address vrfCoordinator = vm.envAddress("VRF_COORDINATOR");
+        uint256 subscriptionId = vm.envUint("SUBSCRIPTION_ID");
+        bytes32 keyHash = vm.envBytes32("KEY_HASH");
+
         vm.startBroadcast();
 
-        counter = new Counter();
+        etherLottery = new EtherLottery(vrfCoordinator, subscriptionId, keyHash);
 
         vm.stopBroadcast();
+
+        console.log("EtherLottery deployed at:", address(etherLottery));
     }
 }

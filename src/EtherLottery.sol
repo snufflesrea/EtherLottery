@@ -7,7 +7,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 /// @title EtherLottery
 /// @notice Each coupon costs 0.001 ETH. When 10 coupons are sold, Chainlink VRF
 ///         picks a winner who receives 0.01 ETH. Sales close when 10 coupons are
-///         sold OR 22 days after the first buyer of the round. If the round
+///         sold OR 2 days after the first buyer of the round. If the round
 ///         expires with fewer than 10 coupons, buyers can claim a refund.
 contract EtherLottery is VRFConsumerBaseV2Plus {
     // ---------------------------------------------------------------------
@@ -16,7 +16,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     uint256 public constant TICKET_PRICE = 0.001 ether;
     uint256 public constant MAX_TICKETS = 10;
     uint256 public constant PRIZE = TICKET_PRICE * MAX_TICKETS; // 0.01 ether
-    uint256 public constant SALE_DURATION = 22 days;
+    uint256 public constant SALE_DURATION = 2 days;
     uint256 public constant DRAW_RETRY_DELAY = 1 days;
 
     // ---------------------------------------------------------------------
@@ -79,7 +79,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
 
         Round storage r = rounds[currentRound];
 
-        // Expire the current round if its 22 day window passed
+        // Expire the current round if its 2 day window passed
         if (r.state == State.Open && _isExpired(r)) {
             _expire(currentRound);
         }

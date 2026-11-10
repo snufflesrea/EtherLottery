@@ -11,10 +11,10 @@ A simple EVM lottery contract that uses **Chainlink VRF v2.5** for verifiable ra
 | Coupon price | 0.001 ETH |
 | Coupons per round | 10 |
 | Prize | 0.01 ETH |
-| Sale window | 22 days from the first purchase of the round |
+| Sale window | 2 days from the first purchase of the round |
 
 1. Users buy coupons with `buyTicket()` by sending exactly 0.001 ETH. Each coupon is one entry.
-2. Sales close when **10 coupons are sold** or **22 days after the first buyer**, whichever comes first.
+2. Sales close when **10 coupons are sold** or **2 days after the first buyer**, whichever comes first.
 3. On the 10th coupon, the contract requests a random number from Chainlink VRF.
 4. When VRF responds, a winner is picked (`random % 10`) and credited 0.01 ETH.
 5. The winner calls `withdrawPrize()` to collect.
@@ -32,7 +32,7 @@ A 0.01 ETH prize can't be paid, so the round becomes **refundable**:
 ```
 Open ──(10 coupons sold)──► Drawing ──(VRF response)──► Finished
   │
-  └──(22 days, < 10 coupons)──► Refundable
+  └──(2 days, < 10 coupons)──► Refundable
 ```
 
 ## Contract interface
