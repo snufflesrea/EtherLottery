@@ -90,7 +90,7 @@ h3{margin:0 0 8px;font-size:16px}
       <div class="row">
         <button class="btn" id="rand">+ Random buyer</button>
         <button class="btn" id="vrf">Fulfill VRF</button>
-        <button class="btn" id="skip">Skip 22 days</button>
+        <button class="btn" id="skip">Skip 2 days</button>
       </div>
     </div>
     <div id="msg"></div>
@@ -101,10 +101,10 @@ h3{margin:0 0 8px;font-size:16px}
   <div class="card">
     <h3>How it works</h3>
     <ol class="how">
-      <li>Each buyer sends exactly 0.001 ETH per coupon. The 22-day clock starts at the first purchase.</li>
+      <li>Each buyer sends exactly 0.001 ETH per coupon. The 2-day clock starts at the first purchase.</li>
       <li>On the 10th coupon, sales close and the contract asks Chainlink VRF for a random number.</li>
       <li>The winner is coupon number (random mod 10). Winners pull their prize with Withdraw.</li>
-      <li>If 22 days pass with fewer than 10 coupons, the round becomes refundable.</li>
+      <li>If 2 days pass with fewer than 10 coupons, the round becomes refundable.</li>
     </ol>
   </div>
 </div>
@@ -114,7 +114,7 @@ h3{margin:0 0 8px;font-size:16px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
 <script>
 const $=s=>document.querySelector(s);
-const SALE=22*86400, ST=['Open','Drawing','Finished','Refundable'];
+const SALE=2*86400, ST=['Open','Drawing','Finished','Refundable'];
 const short=a=>a.slice(0,5)+'…'+a.slice(-3);
 const rnd=()=>'0x'+Array.from({length:40},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
 const YOU='0xYou00000000000000000000000000000000Demo';
@@ -237,7 +237,7 @@ $('#withdraw').onclick=()=>act(()=>api.withdraw(),'Withdrew prize');
 $('#refund').onclick=()=>act(()=>api.refundRound(snap.refund.round),'Refund claimed');
 $('#rand').onclick=()=>act(()=>api.rand(),'A random buyer joined');
 $('#vrf').onclick=()=>act(()=>api.vrf(),'VRF responded, winner picked');
-$('#skip').onclick=()=>act(()=>api.skip(),'Skipped 22 days');
+$('#skip').onclick=()=>act(()=>api.skip(),'Skipped 2 days');
 
 function setMode(m){
   mode=m;$('#mDemo').classList.toggle('on',m==='demo');$('#mLive').classList.toggle('on',m==='live');

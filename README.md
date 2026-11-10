@@ -13,10 +13,10 @@ A simple EVM lottery contract that uses **Chainlink VRF v2.5** for verifiable ra
 | Pot (10 coupons) | 0.01 ETH |
 | Winner prize | 0.009 ETH (90% of the pot) |
 | Protocol fee | 0.001 ETH (10% of the pot) |
-| Sale window | 22 days from the first purchase of the round |
+| Sale window | 2 days from the first purchase of the round |
 
 1. Users buy coupons with `buyTicket()` by sending exactly 0.001 ETH. Each coupon is one entry.
-2. Sales close when **10 coupons are sold** or **22 days after the first buyer**, whichever comes first.
+2. Sales close when **10 coupons are sold** or **2 days after the first buyer**, whichever comes first.
 3. On the 10th coupon, the contract requests a random number from Chainlink VRF.
 4. When VRF responds, a winner is picked (`random % 10`) and credited 0.009 ETH. The remaining 0.001 ETH (10%) is added to `protocolFees`.
 5. The winner calls `withdrawPrize()` to collect.
@@ -27,7 +27,7 @@ If a round expires with fewer than 10 coupons, it becomes **refundable**: anyone
 ```
 Open ──(10 coupons sold)──► Drawing ──(VRF response)──► Finished
   │
-  └──(22 days, < 10 coupons)──► Refundable
+  └──(2 days, < 10 coupons)──► Refundable
 ```
 
 ## Frontend showcase
@@ -41,7 +41,7 @@ The frontend is a single file, `frontend/index.html`, with no build step. It fol
 | UI element | What it shows |
 |---|---|
 | Round header and status pill | Current round number and its state: Open, Drawing, Finished, Refundable or Expired |
-| Stats | Coupon price, prize, coupons sold (x / 10) and a countdown to the 22-day sales close |
+| Stats | Coupon price, prize, coupons sold (x / 10) and a countdown to the 2-day sales close |
 | Coupon grid | Ten slots filled with buyer addresses as coupons are sold. Your coupons are highlighted, and the winner is outlined |
 | Buy coupon | Sends exactly 0.001 ETH. Disabled while a draw is in progress |
 | Withdraw / Refund / Close expired round | Appear only when they apply to you |
@@ -49,7 +49,7 @@ The frontend is a single file, `frontend/index.html`, with no build step. It fol
 
 Two modes:
 
-- **Demo:** a simulated chain, with extra controls (**+ Random buyer**, **Fulfill VRF**, **Skip 22 days**) to walk through a full round, a winner, an expiry and a refund without deploying anything.
+- **Demo:** a simulated chain, with extra controls (**+ Random buyer**, **Fulfill VRF**, **Skip 2 days**) to walk through a full round, a winner, an expiry and a refund without deploying anything.
 - **Live:** reads and writes your deployed contract through MetaMask, using the address from `frontend/config.js`.
 
 ## Project structure
