@@ -6,18 +6,24 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 
 /// @title EtherLottery
 /// @notice Each coupon costs 0.001 ETH. When 10 coupons are sold, Chainlink VRF
-///         picks a winner who receives 0.01 ETH. Sales close when 10 coupons are
-///         sold OR 2 days after the first buyer of the round. If the round
-///         expires with fewer than 10 coupons, buyers can claim a refund.
+///         picks a winner. The pot of 0.01 ETH is split: 90% (0.009 ETH) goes to
+///         the winner and 10% (0.001 ETH) goes to the protocol as a fee.
+///         Sales close when 10 coupons are sold OR 2 days after the first buyer
+///         of the round. If the round expires with fewer than 10 coupons,
+///         buyers get a full refund and no fee is taken.
 contract EtherLottery is VRFConsumerBaseV2Plus {
     // ---------------------------------------------------------------------
     // Constants
     // ---------------------------------------------------------------------
     uint256 public constant TICKET_PRICE = 0.001 ether;
     uint256 public constant MAX_TICKETS = 10;
-    uint256 public constant PRIZE = TICKET_PRICE * MAX_TICKETS; // 0.01 ether
+    uint256 public constant POT = TICKET_PRICE * MAX_TICKETS; // 0.01 ether
+    uint256 public constant FEE_BPS = 1000; // 10% in basis points
+    uint256 public constant PROTOCOL_FEE = (POT * FEE_BPS) / 10_000; // 0.001 ether
+    uint256 public constant PRIZE = POT - PROTOCOL_FEE; // 0.009 ether
     uint256 public constant SALE_DURATION = 2 days;
     uint256 public constant DRAW_RETRY_DELAY = 1 days;
+    uint256 public constant MAX_RETRIES = 3;
 
     // ---------------------------------------------------------------------
     // Chainlink VRF config
@@ -44,6 +50,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
         uint256 drawRequestedAt;
         State state;
         address winner;
+        uint256 retryCount; // number of times randomness was re-requested
     }
 
     uint256 public currentRound;
@@ -51,6 +58,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     mapping(uint256 => uint256) public requestToRound; // VRF requestId => round
     mapping(uint256 => mapping(address => uint256)) public ticketsOf; // round => player => coupons
     mapping(address => uint256) public pendingPrize; // winnings to withdraw
+    uint256 public protocolFees; // accumulated fees the owner can withdraw
 
     // ---------------------------------------------------------------------
     // Events
@@ -61,6 +69,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     event RoundExpired(uint256 indexed round);
     event Refunded(uint256 indexed round, address indexed player, uint256 amount);
     event PrizeWithdrawn(address indexed winner, uint256 amount);
+    event FeesWithdrawn(address indexed to, uint256 amount);
 
     constructor(
         address vrfCoordinator,
@@ -156,11 +165,13 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
     }
 
     /// @notice Re-request randomness if VRF has not answered after 1 day.
-    function retryDraw(uint256 roundId) external {
+        function retryDraw(uint256 roundId) external {
         Round storage r = rounds[roundId];
         require(r.state == State.Drawing, "Not drawing");
         require(block.timestamp >= r.drawRequestedAt + DRAW_RETRY_DELAY, "Too early");
+        require(r.retryCount < MAX_RETRIES); // or restrict to owner/keeper role
         _requestDraw(roundId);
+        r.retryCount++;
     }
 
     function fulfillRandomWords(
@@ -179,6 +190,7 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
 
         // Pull-payment: winner withdraws, so the VRF callback can never fail
         pendingPrize[winner] += PRIZE;
+        protocolFees += PROTOCOL_FEE;
 
         emit WinnerPicked(roundId, winner, PRIZE);
     }
@@ -194,6 +206,20 @@ contract EtherLottery is VRFConsumerBaseV2Plus {
         (bool ok, ) = msg.sender.call{value: amount}("");
         require(ok, "Transfer failed");
         emit PrizeWithdrawn(msg.sender, amount);
+    }
+
+    // ---------------------------------------------------------------------
+    // Protocol fee (owner only)
+    // ---------------------------------------------------------------------
+    /// @notice Withdraw the accumulated 10% protocol fees to the owner.
+    function withdrawFees() external onlyOwner {
+        uint256 amount = protocolFees;
+        require(amount > 0, "No fees");
+
+        protocolFees = 0;
+        (bool ok, ) = owner().call{value: amount}("");
+        require(ok, "Transfer failed");
+        emit FeesWithdrawn(owner(), amount);
     }
 
     // ---------------------------------------------------------------------

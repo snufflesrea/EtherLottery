@@ -141,7 +141,7 @@ contract EtherLotteryTest is Test {
         address winner = _winner(0);
         assertEq(uint256(_state(0)), uint256(EtherLottery.State.Finished));
         assertTrue(_isPlayer(winner));
-        assertEq(lottery.pendingPrize(winner), 0.01 ether);
+        assertEq(lottery.pendingPrize(winner), 0.009 ether);
     }
 
     function test_WinnerCanWithdrawPrize() public {
@@ -154,9 +154,10 @@ contract EtherLotteryTest is Test {
         vm.prank(winner);
         lottery.withdrawPrize();
 
-        assertEq(winner.balance, before + 0.01 ether);
+        assertEq(winner.balance, before + 0.009 ether);
         assertEq(lottery.pendingPrize(winner), 0);
-        assertEq(address(lottery).balance, 0);
+        // only the protocol fee is left in the contract
+        assertEq(address(lottery).balance, lottery.PROTOCOL_FEE());
     }
 
     function test_WithdrawPrize_RevertsWhenNothingToWithdraw() public {
@@ -212,7 +213,7 @@ contract EtherLotteryTest is Test {
         vrf.fulfillRandomWords(2, address(lottery));
         address winner = _winner(0);
         assertEq(uint256(_state(0)), uint256(EtherLottery.State.Finished));
-        assertEq(lottery.pendingPrize(winner), 0.01 ether);
+        assertEq(lottery.pendingPrize(winner), 0.009 ether);
 
         // Late response to the first request must not pay a second prize
         vrf.fulfillRandomWords(1, address(lottery));
@@ -222,7 +223,7 @@ contract EtherLotteryTest is Test {
         for (uint256 i = 0; i < MAX; i++) {
             totalPending += lottery.pendingPrize(players[i]);
         }
-        assertEq(totalPending, 0.01 ether);
+        assertEq(totalPending, 0.009 ether);
     }
 
     // ---------------------------------------------------------------------
@@ -329,6 +330,84 @@ contract EtherLotteryTest is Test {
     }
 
     // ---------------------------------------------------------------------
+    // Protocol fee
+    // ---------------------------------------------------------------------
+    receive() external payable {} // the test contract is the owner and receives fees
+
+    function test_FeeConstants() public view {
+        assertEq(lottery.POT(), 0.01 ether);
+        assertEq(lottery.PROTOCOL_FEE(), 0.001 ether);
+        assertEq(lottery.PRIZE(), 0.009 ether);
+        assertEq(lottery.PRIZE() + lottery.PROTOCOL_FEE(), PRICE * MAX);
+    }
+
+    function test_FeeAccruesWhenRoundFinishes() public {
+        _buy(0, 10);
+        assertEq(lottery.protocolFees(), 0);
+
+        vrf.fulfillRandomWords(1, address(lottery));
+
+        assertEq(lottery.protocolFees(), 0.001 ether);
+    }
+
+    function test_ContractBalanceEqualsPrizePlusFees() public {
+        _buy(0, 10);
+        vrf.fulfillRandomWords(1, address(lottery));
+
+        assertEq(
+            address(lottery).balance,
+            lottery.pendingPrize(_winner(0)) + lottery.protocolFees()
+        );
+    }
+
+    function test_OwnerCanWithdrawFees() public {
+        _buy(0, 10);
+        vrf.fulfillRandomWords(1, address(lottery));
+
+        uint256 before = address(this).balance;
+        lottery.withdrawFees();
+
+        assertEq(address(this).balance, before + 0.001 ether);
+        assertEq(lottery.protocolFees(), 0);
+    }
+
+    function test_FeesAccumulateAcrossRounds() public {
+        _buy(0, 10);
+        vrf.fulfillRandomWords(1, address(lottery));
+        _buy(0, 10); // round 1
+        vrf.fulfillRandomWords(2, address(lottery));
+
+        assertEq(lottery.protocolFees(), 0.002 ether);
+    }
+
+    function test_WithdrawFees_RevertsForNonOwner() public {
+        _buy(0, 10);
+        vrf.fulfillRandomWords(1, address(lottery));
+
+        vm.prank(players[0]);
+        vm.expectRevert();
+        lottery.withdrawFees();
+    }
+
+    function test_WithdrawFees_RevertsWhenNoFees() public {
+        vm.expectRevert("No fees");
+        lottery.withdrawFees();
+    }
+
+    function test_RefundTakesNoFee() public {
+        _buy(0, 3);
+        vm.warp(block.timestamp + 22 days + 1);
+        lottery.closeExpiredRound(0);
+
+        uint256 before = players[0].balance;
+        vm.prank(players[0]);
+        lottery.claimRefund(0);
+
+        assertEq(players[0].balance, before + PRICE); // full price back
+        assertEq(lottery.protocolFees(), 0);
+    }
+
+    // ---------------------------------------------------------------------
     // Fuzz
     // ---------------------------------------------------------------------
     function testFuzz_WinnerAlwaysAPlayer(uint256 randomWord) public {
@@ -339,6 +418,6 @@ contract EtherLotteryTest is Test {
         vrf.fulfillRandomWordsWithOverride(1, address(lottery), words);
 
         assertTrue(_isPlayer(_winner(0)));
-        assertEq(lottery.pendingPrize(_winner(0)), 0.01 ether);
+        assertEq(lottery.pendingPrize(_winner(0)), 0.009 ether);
     }
 }

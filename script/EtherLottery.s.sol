@@ -21,5 +21,17 @@ contract EtherLotteryScript is Script {
         vm.stopBroadcast();
 
         console.log("EtherLottery deployed at:", address(etherLottery));
+
+        // Let the frontend know where the contract lives.
+        // Needs fs_permissions for ./frontend in foundry.toml.
+        string memory config = string.concat(
+            "window.ETHER_LOTTERY = { address: \"",
+            vm.toString(address(etherLottery)),
+            "\", chainId: ",
+            vm.toString(block.chainid),
+            " };\n"
+        );
+        vm.writeFile("frontend/config.js", config);
+        console.log("Wrote frontend/config.js");
     }
 }

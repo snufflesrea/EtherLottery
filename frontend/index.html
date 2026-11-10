@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EtherLottery</title>
+<style>
+:root{--bg:#f6f5f1;--sf:#ffffff;--tx:#1c1b18;--mu:#6b6a63;--bd:#e3e1d8;--ac:#b7791f;--act:#ffffff;--ok:#2f855a;--bad:#c53030;--slot:#f0eee6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131312;--sf:#1d1c1a;--tx:#f1efe8;--mu:#a09e94;--bd:#33312c;--ac:#e0b04a;--act:#1a1405;--ok:#68d391;--bad:#fc8181;--slot:#262522;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131312;--sf:#1d1c1a;--tx:#f1efe8;--mu:#a09e94;--bd:#33312c;--ac:#e0b04a;--act:#1a1405;--ok:#68d391;--bad:#fc8181;--slot:#262522;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+h1{margin:0;font-size:28px}
+.sub{color:var(--mu);margin:4px 0 20px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--tx);padding:8px 16px;cursor:pointer;font:inherit}
+.seg button.on{background:var(--ac);color:var(--act);font-weight:600}
+input{flex:1;min-width:200px;padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:14px ui-monospace,Menlo,monospace}
+.btn{border:1px solid var(--bd);background:var(--sf);color:var(--tx);padding:10px 16px;border-radius:10px;cursor:pointer;font:inherit}
+.btn.pri{background:var(--ac);color:var(--act);border-color:var(--ac);font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.top h2{margin:0;font-size:18px}
+.pill{padding:3px 12px;border-radius:99px;font-size:13px;font-weight:600;border:1px solid var(--bd)}
+.pill.Open{color:var(--ok);border-color:var(--ok)}.pill.Drawing{color:var(--ac);border-color:var(--ac)}.pill.Finished{color:var(--tx)}.pill.Refundable,.pill.Expired{color:var(--bad);border-color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--slot);border-radius:10px;padding:10px}
+.stat span{display:block;color:var(--mu);font-size:12px}
+.stat b{font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.slot{aspect-ratio:1;border:2px dashed var(--bd);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--mu);font-size:11px;overflow:hidden}
+.slot b{font-size:18px}
+.slot.on{border:2px solid var(--ac);background:var(--slot);color:var(--tx)}
+.slot.me{background:var(--ac);color:var(--act)}
+.slot.win{outline:3px solid var(--ok)}
+.bar{height:8px;background:var(--slot);border-radius:9px;overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;background:var(--ac);transition:width .3s}
+.banner{padding:12px;border-radius:10px;background:var(--slot);margin-bottom:14px;font-weight:600}
+#msg{min-height:22px;margin-top:12px;font-size:14px;color:var(--mu)}#msg.err{color:var(--bad)}
+.tools{border-top:1px dashed var(--bd);margin-top:14px;padding-top:14px}
+.tools small{display:block;color:var(--mu);margin-bottom:8px}
+ul{list-style:none;margin:0;padding:0;max-height:220px;overflow-y:auto;font-size:14px}
+li{padding:6px 0;border-bottom:1px solid var(--bd)}li time{color:var(--mu);margin-right:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+h3{margin:0 0 8px;font-size:16px}
+.how{color:var(--mu);font-size:14px;margin:0;padding-left:18px}
+.how li{border:0;padding:2px 0;display:list-item}
+.hide{display:none!important}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎟️ EtherLottery</h1>
+  <p class="sub">Ten coupons at 0.001 ETH. Chainlink VRF picks one winner who takes 0.009 ETH. The protocol keeps a 10% fee.</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="seg"><button id="mDemo" class="on">Demo</button><button id="mLive">Live</button></div>
+      <span id="modeNote" style="color:var(--mu);font-size:14px">Simulated chain, no wallet needed.</span>
+    </div>
+    <div id="livePanel" class="row hide" style="margin-top:12px">
+      <input id="addr" placeholder="Contract address 0x…" spellcheck="false">
+      <button class="btn pri" id="connect">Connect wallet</button>
+    </div>
+  </div>
+
+  <div class="card" id="main">
+    <div class="top"><h2 id="roundTitle">Round 0</h2><span class="pill" id="pill">Open</span></div>
+    <div class="stats">
+      <div class="stat"><span>Coupon price</span><b>0.001 ETH</b></div>
+      <div class="stat"><span>Prize (after 10% fee)</span><b>0.009 ETH</b></div>
+      <div class="stat"><span>Sold</span><b id="sold">0 / 10</b></div>
+      <div class="stat"><span>Sales close in</span><b id="timer">—</b></div>
+    </div>
+    <div class="bar"><i id="prog" style="width:0"></i></div>
+    <div class="grid" id="grid"></div>
+    <div id="banner" class="banner hide"></div>
+    <div class="row">
+      <button class="btn pri" id="buy">Buy coupon · 0.001 ETH</button>
+      <button class="btn hide" id="close">Close expired round</button>
+      <button class="btn pri hide" id="withdraw"></button>
+      <button class="btn hide" id="refund"></button>
+    </div>
+    <div id="tools" class="tools">
+      <small>Demo controls (simulate what the chain and Chainlink would do)</small>
+      <div class="row">
+        <button class="btn" id="rand">+ Random buyer</button>
+        <button class="btn" id="vrf">Fulfill VRF</button>
+        <button class="btn" id="skip">Skip 22 days</button>
+      </div>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card"><h3>Activity</h3><ul id="log"></ul></div>
+
+  <div class="card">
+    <h3>How it works</h3>
+    <ol class="how">
+      <li>Each buyer sends exactly 0.001 ETH per coupon. The 22-day clock starts at the first purchase.</li>
+      <li>On the 10th coupon, sales close and the contract asks Chainlink VRF for a random number.</li>
+      <li>The winner is coupon number (random mod 10). Winners pull their prize with Withdraw.</li>
+      <li>If 22 days pass with fewer than 10 coupons, the round becomes refundable.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- config.js is written by script/EtherLottery.s.sol on deploy (optional) -->
+<script src="config.js" onerror="void 0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const SALE=22*86400, ST=['Open','Drawing','Finished','Refundable'];
+const short=a=>a.slice(0,5)+'…'+a.slice(-3);
+const rnd=()=>'0x'+Array.from({length:40},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
+const YOU='0xYou00000000000000000000000000000000Demo';
+let mode='demo', api=demo(), snap=null, busy=false;
+
+/* ---------- Demo engine ---------- */
+function demo(){
+  let skew=0,cur=0;const pend={};const mk=()=>({p:[],start:0,st:0,w:null});const R=[mk()];
+  const now=()=>Math.floor(Date.now()/1000)+skew;
+  const exp=r=>r.p.length>0&&now()>r.start+SALE;
+  function add(a){
+    let r=R[cur];
+    if(r.st===0&&exp(r))r.st=3;
+    if(r.st!==0){if(r.st===1)throw new Error('Draw in progress');R.push(mk());cur++;r=R[cur];}
+    if(!r.p.length)r.start=now();
+    r.p.push(a);
+    if(r.p.length===10)r.st=1;
+  }
+  [rnd(),rnd(),rnd()].forEach(add);
+  return{me:YOU,now,
+    async snap(){
+      const r=R[cur];let refund=null;
+      for(const i of [cur,cur-1]){const x=R[i];if(x&&x.st===3){const n=x.p.filter(a=>a===YOU).length;if(n){refund={round:i,n};break;}}}
+      return{me:YOU,round:cur,players:[...r.p],start:r.start,end:r.start?r.start+SALE:0,st:r.st,winner:r.w,pending:pend[YOU]||0,refund};
+    },
+    async buy(){add(YOU)},
+    async rand(){add(rnd())},
+    async vrf(){const r=R[cur];if(r.st!==1)throw new Error('No draw is pending');r.w=r.p[Math.random()*10|0];r.st=2;pend[r.w]=(pend[r.w]||0)+0.009;},
+    async skip(){skew+=SALE+1},
+    async expire(){const r=R[cur];if(!(r.st===0&&exp(r)))throw new Error('Not expired');r.st=3},
+    async withdraw(){pend[YOU]=0},
+    async refundRound(i){const x=R[i];const n=x.p.filter(a=>a===YOU).length;x.p=x.p.map(a=>a===YOU?'0xrefunded':a);return n}
+  };
+}
+
+/* ---------- Live (MetaMask + ethers) ---------- */
+const ABI=["function buyTicket() payable","function withdrawPrize()","function claimRefund(uint256)","function closeExpiredRound(uint256)",
+"function currentRound() view returns (uint256)","function getRound(uint256) view returns (address[] players,uint256 startTime,uint256 endTime,uint8 state,address winner)",
+"function pendingPrize(address) view returns (uint256)","function ticketsOf(uint256,address) view returns (uint256)"];
+async function live(addr){
+  if(typeof ethers==='undefined')throw new Error('ethers failed to load');
+  if(!window.ethereum)throw new Error('No wallet found. Open this page in a browser with MetaMask.');
+  if(!ethers.isAddress(addr))throw new Error('Enter a valid contract address');
+  const cfg=window.ETHER_LOTTERY;
+  if(cfg&&cfg.chainId){
+    const id='0x'+Number(cfg.chainId).toString(16);
+    try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:id}]})}
+    catch(e){throw new Error('Switch your wallet to chain '+cfg.chainId)}
+  }
+  const prov=new ethers.BrowserProvider(window.ethereum);
+  await prov.send('eth_requestAccounts',[]);
+  const signer=await prov.getSigner(),me=await signer.getAddress();
+  const c=new ethers.Contract(addr,ABI,signer);
+  const get=async i=>{const r=await c.getRound(i);return{p:[...r.players],start:Number(r.startTime),end:Number(r.endTime),st:Number(r.state),w:r.winner}};
+  const send=async p=>{await (await p).wait()};
+  let round=0;
+  return{me,now:()=>Math.floor(Date.now()/1000),
+    async snap(){
+      const cur=Number(await c.currentRound());round=cur;const r=await get(cur);
+      const pend=Number(ethers.formatEther(await c.pendingPrize(me)));let refund=null;
+      for(const i of [cur,cur-1]){if(i<0)continue;const x=i===cur?r:await get(i);
+        if(x.st===3){const n=Number(await c.ticketsOf(i,me));if(n){refund={round:i,n};break;}}}
+      return{me,round:cur,players:r.p,start:r.start,end:r.end,st:r.st,winner:r.w===ethers.ZeroAddress?null:r.w,pending:pend,refund};
+    },
+    buy:()=>send(c.buyTicket({value:ethers.parseEther('0.001')})),
+    withdraw:()=>send(c.withdrawPrize()),
+    expire:()=>send(c.closeExpiredRound(round)),
+    refundRound:async i=>{await send(c.claimRefund(i))}
+  };
+}
+
+/* ---------- UI ---------- */
+function log(m){const li=document.createElement('li');li.innerHTML='<time>'+new Date().toLocaleTimeString()+'</time>';li.append(m);$('#log').prepend(li)}
+function msg(t,err){const m=$('#msg');m.textContent=t||'';m.className=err?'err':''}
+const fmt=s=>{if(s<=0)return '0s';const d=s/86400|0,h=s%86400/3600|0,m=s%3600/60|0;return d?`${d}d ${h}h ${m}m`:h?`${h}h ${m}m ${s%60}s`:`${m}m ${s%60}s`};
+
+function render(){
+  const s=snap;if(!s){$('#main').classList.add('hide');return}
+  $('#main').classList.remove('hide');
+  const expired=s.st===0&&s.end>0&&api.now()>s.end;
+  const label=expired?'Expired':ST[s.st];
+  $('#roundTitle').textContent='Round '+s.round;
+  const p=$('#pill');p.textContent=label;p.className='pill '+label;
+  $('#sold').textContent=s.players.length+' / 10';
+  $('#prog').style.width=s.players.length*10+'%';
+  $('#grid').innerHTML=Array.from({length:10},(_,i)=>{
+    const a=s.players[i];if(!a)return`<div class="slot"><b>${i+1}</b></div>`;
+    const cls='slot on'+(a===s.me?' me':'')+(s.st===2&&a===s.winner?' win':'');
+    return`<div class="${cls}"><b>${i+1}</b><span>${short(a)}</span></div>`}).join('');
+  const b=$('#banner');
+  if(s.st===1){b.textContent='⏳ Waiting for Chainlink VRF to draw the winner…';b.classList.remove('hide')}
+  else if(s.st===2&&s.winner){b.textContent=(s.winner===s.me?'🏆 You won! ':'🏆 Winner: '+short(s.winner)+'. ')+'The prize is 0.009 ETH.';b.classList.remove('hide')}
+  else b.classList.add('hide');
+  $('#buy').disabled=busy||s.st===1;
+  $('#close').classList.toggle('hide',!expired);
+  $('#withdraw').classList.toggle('hide',!(s.pending>0));$('#withdraw').textContent='Withdraw '+s.pending+' ETH';
+  $('#refund').classList.toggle('hide',!s.refund);
+  if(s.refund)$('#refund').textContent='Refund '+(s.refund.n*0.001).toFixed(3)+' ETH (round '+s.refund.round+')';
+  $('#tools').classList.toggle('hide',mode!=='demo');
+  $('#vrf').disabled=s.st!==1;
+  tick();
+}
+function tick(){
+  const s=snap;if(!s)return;
+  $('#timer').textContent=(s.st===0&&s.end>0)?fmt(s.end-api.now()):'—';
+}
+async function refresh(){
+  if(!api)return;
+  try{snap=await api.snap();render()}catch(e){msg(e.shortMessage||e.message,true)}
+}
+async function act(fn,text){
+  if(busy||!api)return;busy=true;msg('Working…');render();
+  try{await fn();if(text)log(text);msg('')}catch(e){msg(e.shortMessage||e.reason||e.message,true)}
+  busy=false;await refresh();
+}
+
+$('#buy').onclick=()=>act(()=>api.buy(),'Bought a coupon');
+$('#close').onclick=()=>act(()=>api.expire(),'Closed expired round');
+$('#withdraw').onclick=()=>act(()=>api.withdraw(),'Withdrew prize');
+$('#refund').onclick=()=>act(()=>api.refundRound(snap.refund.round),'Refund claimed');
+$('#rand').onclick=()=>act(()=>api.rand(),'A random buyer joined');
+$('#vrf').onclick=()=>act(()=>api.vrf(),'VRF responded, winner picked');
+$('#skip').onclick=()=>act(()=>api.skip(),'Skipped 22 days');
+
+function setMode(m){
+  mode=m;$('#mDemo').classList.toggle('on',m==='demo');$('#mLive').classList.toggle('on',m==='live');
+  $('#livePanel').classList.toggle('hide',m!=='live');
+  $('#modeNote').textContent=m==='demo'?'Simulated chain, no wallet needed.':'Reads and writes a deployed EtherLottery through your wallet.';
+  msg('');
+  if(m==='demo'){api=demo();snap=null;refresh();log('Switched to demo mode')}
+  else{api=null;snap=null;render();$('#main').classList.add('hide')}
+}
+$('#mDemo').onclick=()=>setMode('demo');
+$('#mLive').onclick=()=>setMode('live');
+$('#connect').onclick=async()=>{
+  try{msg('Connecting…');api=await live($('#addr').value.trim());log('Connected as '+short(api.me));msg('');await refresh()}
+  catch(e){api=null;msg(e.shortMessage||e.message,true)}
+};
+
+if(window.ETHER_LOTTERY&&window.ETHER_LOTTERY.address){
+  $('#addr').value=window.ETHER_LOTTERY.address;
+  $('#modeNote').textContent='Simulated chain, no wallet needed. A deployed contract was found: switch to Live.';
+}
+setInterval(tick,1000);
+setInterval(()=>{if(mode==='live'&&api&&!busy)refresh()},8000);
+log('Demo mode: simulated chain with 3 coupons already sold');
+refresh();
+</script>
+</body>
+</html>
