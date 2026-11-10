@@ -27,7 +27,7 @@ contract EtherLotteryTest is Test {
         // baseFee, gasPrice, weiPerUnitLink
         vrf = new VRFCoordinatorV2_5Mock(0.25 ether, 1e9, 4e15);
         subId = vrf.createSubscription();
-        vrf.fundSubscription(subId, 100 ether);
+        vrf.fundSubscription(subId, 1000 ether);
 
         lottery = new EtherLottery(address(vrf), subId, KEY_HASH);
         vrf.addConsumer(subId, address(lottery));
@@ -106,7 +106,7 @@ contract EtherLotteryTest is Test {
 
         (, uint256 start, uint256 end, , ) = lottery.getRound(0);
         assertEq(start, 1_000_000);
-        assertEq(end, 1_000_000 + 22 days);
+        assertEq(end, 1_000_000 + 2 days);
     }
 
     // ---------------------------------------------------------------------
@@ -231,14 +231,14 @@ contract EtherLotteryTest is Test {
     // ---------------------------------------------------------------------
     function test_CloseExpiredRound_RevertsBeforeExpiry() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days); // exactly at the limit, not past it
+        vm.warp(block.timestamp + 2 days); // exactly at the limit, not past it
         vm.expectRevert("Not expired");
         lottery.closeExpiredRound(0);
     }
 
     function test_ExpiredRoundBecomesRefundable() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
 
         lottery.closeExpiredRound(0);
 
@@ -247,7 +247,7 @@ contract EtherLotteryTest is Test {
 
     function test_ClaimRefund() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
         lottery.closeExpiredRound(0);
 
         uint256 before = players[0].balance;
@@ -264,7 +264,7 @@ contract EtherLotteryTest is Test {
         lottery.buyTicket{value: PRICE}();
         vm.stopPrank();
 
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
         lottery.closeExpiredRound(0);
 
         uint256 before = players[0].balance;
@@ -276,7 +276,7 @@ contract EtherLotteryTest is Test {
 
     function test_ClaimRefund_RevertsTwice() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
         lottery.closeExpiredRound(0);
 
         vm.startPrank(players[0]);
@@ -295,7 +295,7 @@ contract EtherLotteryTest is Test {
 
     function test_ClaimRefund_RevertsForNonBuyer() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
         lottery.closeExpiredRound(0);
 
         vm.prank(players[9]);
@@ -305,7 +305,7 @@ contract EtherLotteryTest is Test {
 
     function test_BuyAfterExpiryStartsNewRound() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
 
         _buy(3, 4); // auto-expires round 0 and opens round 1
 
@@ -323,7 +323,7 @@ contract EtherLotteryTest is Test {
 
     function test_FullRoundBeforeExpiryStillDraws() public {
         _buy(0, 9);
-        vm.warp(block.timestamp + 21 days);
+        vm.warp(block.timestamp + 1 days);
         _buy(9, 10);
 
         assertEq(uint256(_state(0)), uint256(EtherLottery.State.Drawing));
@@ -396,7 +396,7 @@ contract EtherLotteryTest is Test {
 
     function test_RefundTakesNoFee() public {
         _buy(0, 3);
-        vm.warp(block.timestamp + 22 days + 1);
+        vm.warp(block.timestamp + 2 days + 1);
         lottery.closeExpiredRound(0);
 
         uint256 before = players[0].balance;
